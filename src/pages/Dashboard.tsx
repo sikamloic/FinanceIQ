@@ -1,5 +1,5 @@
-// Budget Douala - Dashboard Stylé avec Design System
-// I2.4 - Dashboard Vide Stylé
+// FinanceIQ - Dashboard Principal
+// Vue d'ensemble de l'intelligence financière
 
 import { useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui'

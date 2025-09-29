@@ -1,5 +1,5 @@
-// Budget Douala - Page Budgets Complète
-// Affichage détaillé des budgets par catégorie avec données réelles
+// FinanceIQ - Suivi Budgétaire Intelligent
+// Analyse détaillée des budgets scientifiques par catégorie
 
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui'
 import BudgetBar from '../components/BudgetBar'

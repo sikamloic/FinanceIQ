@@ -12,7 +12,7 @@ class BudgetDB extends Dexie {
   settings!: EntityTable<Settings, 'id'>
 
   constructor() {
-    super('BudgetDoualaDB')
+    super('FinanceIQDB')
     
     // Version 1 du schema
     this.version(1).stores({

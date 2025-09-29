@@ -1,5 +1,5 @@
-// Budget Douala - Layout Mobile Moderne
-// I2.1 - Layout Mobile + Navigation
+// FinanceIQ - Layout Mobile Moderne
+// Interface principale de l'application
 
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { 
@@ -29,7 +29,7 @@ export default function Layout() {
   // Titre dynamique selon la page
   const getPageTitle = () => {
     const currentItem = navItems.find(item => item.path === location.pathname)
-    return currentItem?.label || 'Budget Douala'
+    return currentItem?.label || 'FinanceIQ'
   }
 
   return (
@@ -38,9 +38,9 @@ export default function Layout() {
       <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600/95 to-blue-700/95 backdrop-blur-sm text-white shadow-lg z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-semibold text-white">{getPageTitle()}</h1>
-              <p className="text-blue-100 text-sm">Douala, Cameroun</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-semibold text-white truncate">{getPageTitle()}</h1>
+              <p className="text-blue-100 text-xs truncate">FinanceIQ</p>
             </div>
             <div className="flex items-center space-x-3">
               <CurrencyDollarIcon className="w-8 h-8 text-blue-100" />

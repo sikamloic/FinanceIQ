@@ -1,5 +1,5 @@
-// Budget Douala - Page Configuration PIN
-// I5.2 - Écran PIN Setup avec pavé numérique
+// FinanceIQ - Configuration Sécurisée
+// Écran de configuration du code PIN de sécurité
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui'

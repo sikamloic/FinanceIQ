@@ -1,5 +1,5 @@
-// Budget Douala - Settings Scientifiques
-// Configuration basée sur les règles budgétaires optimales
+// FinanceIQ - Configuration Intelligente
+// Paramétrage scientifique des budgets optimaux
 
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui'

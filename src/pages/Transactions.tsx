@@ -1,5 +1,5 @@
-// Budget Douala - Page Transactions
-// Affichage et gestion de toutes les dépenses enregistrées
+// FinanceIQ - Historique des Transactions
+// Suivi intelligent de toutes vos dépenses et revenus enregistrées
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Icon, ActionIcons, StatusIcons, FinanceIcons } from '../components/ui'

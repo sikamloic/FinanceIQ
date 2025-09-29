@@ -1,5 +1,5 @@
-// Budget Douala - Page Quick Add Optimisée
-// I3.2 - Page Quick Add avec 3 Boutons
+// FinanceIQ - Saisie Rapide des Dépenses
+// Interface optimisée pour l'ajout de transactions
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'

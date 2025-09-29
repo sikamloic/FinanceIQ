@@ -1,5 +1,5 @@
-// Budget Douala - Page Déverrouillage PIN
-// I5.3 - Écran PIN Unlock au lancement
+// FinanceIQ - Déverrouillage Sécurisé
+// Écran de saisie du code PIN pour accéder à l'application
 
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui'
@@ -114,7 +114,7 @@ export default function PinUnlock({
   const getTitle = () => {
     if (isBlocked) return 'Accès temporairement bloqué'
     if (attempts > 0) return 'Code PIN incorrect'
-    return 'Déverrouiller Budget Douala'
+    return 'Déverrouiller FinanceIQ'
   }
 
   const getDescription = () => {
