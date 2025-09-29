@@ -1,0 +1,19 @@
+// Budget Douala - Configuration Vitest
+// I2.3 - Format XAF Utility
+
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+  },
+  resolve: {
+    alias: {
+      '@': '/src',
+    },
+  },
+})
