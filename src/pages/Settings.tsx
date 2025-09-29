@@ -1,68 +1,48 @@
-// Budget Douala - Page Settings
-// I6.1 - Interface configuration paramètres financiers
+// Budget Douala - Settings Scientifiques
+// Configuration basée sur les règles budgétaires optimales
 
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui'
 import NumericInput from '../components/NumericInput'
-// Import useSettings supprimé - chargement direct depuis IndexedDB
 import { formatCurrencyXAF } from '../utils/format'
-import {
-  calculateRentFund,
-  calculateTransportBudget,
-  calculateFoodBudget,
-  calculateDataBudget
-} from '../utils/calculations'
+import { BUDGET_RULES, calculateBudgetAmount, getBudgetValidation } from '../types/budgetRules'
 import { resetDatabase, resetTransactionsOnly, showDatabaseStats } from '../utils/resetDatabase'
+import { migrateToScientificCategories, needsMigration } from '../utils/migrateCategories'
 
-interface SettingsFormData {
+interface ScientificBudgetData {
   salary: number
-  rentMonthly: number
-  rentMarginPct: 5 | 10
-  salarySavePct: number
-  
-  // Budgets par catégorie
-  nutritionBudget: number
-  transportBudget: number
-  utilitiesBudget: number
-  healthBeautyBudget: number
-  phoneInternetBudget: number
-  leisureBudget: number
-  diversBudget: number
-  pocketMonsieurBudget: number
-  pocketMadameBudget: number
-  familyAidBudget: number
+  budgets: Record<string, number> // categoryId -> amount
 }
 
-export default function Settings() {
-  // Suppression useSettings - chargement direct depuis IndexedDB
+export default function SettingsScientific() {
   const [isLoading, setIsLoading] = useState(true)
-  const [formData, setFormData] = useState<SettingsFormData>({
-    salary: 250000,
-    rentMonthly: 35000,
-    rentMarginPct: 10,
-    salarySavePct: 10,
-    
-    // Budgets par catégorie
-    nutritionBudget: 50000,
-    transportBudget: 32550,
-    utilitiesBudget: 25000,
-    healthBeautyBudget: 15000,
-    phoneInternetBudget: 12500,
-    leisureBudget: 20000,
-    diversBudget: 15000,
-    pocketMonsieurBudget: 25000,
-    pocketMadameBudget: 25000,
-    familyAidBudget: 30000
+  const [formData, setFormData] = useState<ScientificBudgetData>({
+    salary: 0,
+    budgets: {}
   })
+  
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [warnings, setWarnings] = useState<Record<string, string>>({})
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const [originalSettings, setOriginalSettings] = useState<SettingsFormData | null>(null)
-  const [marginChanged, setMarginChanged] = useState(false)
+  const [originalData, setOriginalData] = useState<ScientificBudgetData | null>(null)
   const [isResetting, setIsResetting] = useState(false)
   const [dbStats, setDbStats] = useState<{ transactions: number; categories: number; settings: number } | null>(null)
+  const [useRecommended, setUseRecommended] = useState(true)
+  const [needsCategoryMigration, setNeedsCategoryMigration] = useState(false)
+
+  // Initialiser les budgets avec les valeurs recommandées
+  const initializeBudgets = (salary: number, useRecommendedValues: boolean = true) => {
+    if (salary <= 0) return {}
+    
+    const budgets: Record<string, number> = {}
+    
+    BUDGET_RULES.forEach(category => {
+      const percentage = useRecommendedValues ? category.recommendedPercentage : category.maxPercentage
+      budgets[category.id] = calculateBudgetAmount(salary, percentage)
+    })
+    
+    return budgets
+  }
 
   // Charger les settings existants
   useEffect(() => {
@@ -71,312 +51,233 @@ export default function Settings() {
         const { db } = await import('../data/db')
         const currentSettings = await db.settings.get('singleton')
         
-        const settingsData: SettingsFormData = {
-          salary: currentSettings?.salary || 250000,
-          rentMonthly: currentSettings?.rentMonthly || 35000,
-          rentMarginPct: currentSettings?.rentMarginPct || 10,
-          salarySavePct: currentSettings?.salarySavePct || 10,
+        let budgets = {}
+        let salary = 0
+
+        if (currentSettings && currentSettings.salary > 0) {
+          salary = currentSettings.salary
           
-          // Budgets par catégorie
-          nutritionBudget: currentSettings?.nutritionBudget || 50000,
-          transportBudget: currentSettings?.transportBudget || 32550,
-          utilitiesBudget: currentSettings?.utilitiesBudget || 25000,
-          healthBeautyBudget: currentSettings?.healthBeautyBudget || 15000,
-          phoneInternetBudget: currentSettings?.phoneInternetBudget || 12500,
-          leisureBudget: currentSettings?.leisureBudget || 20000,
-          diversBudget: currentSettings?.diversBudget || 15000,
-          pocketMonsieurBudget: currentSettings?.pocketMonsieurBudget || 25000,
-          pocketMadameBudget: currentSettings?.pocketMadameBudget || 25000,
-          familyAidBudget: currentSettings?.familyAidBudget || 30000
+          // Prioriser les nouvelles catégories scientifiques si elles existent
+          if (currentSettings.scientificBudgets) {
+            budgets = currentSettings.scientificBudgets
+          } else {
+            // Fallback : mapper les anciens champs vers les nouvelles catégories
+            budgets = {
+              logement: Math.round((currentSettings.rentMonthly || 0) * 1.1), // Ajouter marge
+              alimentation: currentSettings.nutritionBudget || calculateBudgetAmount(salary, 8.5),
+              transport: currentSettings.transportBudget || calculateBudgetAmount(salary, 6),
+              factures: currentSettings.utilitiesBudget || calculateBudgetAmount(salary, 6),
+              sante: currentSettings.healthBeautyBudget || calculateBudgetAmount(salary, 4),
+              vie_courante: currentSettings.diversBudget || calculateBudgetAmount(salary, 3.5),
+              couple: (currentSettings.pocketMonsieurBudget || 0) + (currentSettings.pocketMadameBudget || 0) || calculateBudgetAmount(salary, 4),
+              loisirs: currentSettings.leisureBudget || calculateBudgetAmount(salary, 1.5),
+              famille: currentSettings.familyAidBudget || calculateBudgetAmount(salary, 2.5),
+              education: calculateBudgetAmount(salary, 2.5),
+              dettes: calculateBudgetAmount(salary, 5),
+              imprevus: calculateBudgetAmount(salary, 3.5),
+              epargne: Math.round(salary * (currentSettings.salarySavePct || 20) / 100)
+            }
+          }
         }
 
-        if (currentSettings) {
-          console.log('Settings chargés depuis IndexedDB:', currentSettings)
-        } else {
-          console.log('Aucun settings trouvé, utilisation des valeurs par défaut')
-        }
-
-        // Sauvegarder les settings originaux pour détecter les changements
-        setOriginalSettings(settingsData)
+        const settingsData = { salary, budgets }
+        setOriginalData(settingsData)
         setFormData(settingsData)
         setIsLoading(false)
-
-        // Test des calculs pour validation I6.3
-        console.log('Test calculs marge loyer:')
-        console.log('  Loyer 35000 XAF + 5% =', calculateRentFund(35000, 5), 'XAF (attendu: 36750)')
-        console.log('  Loyer 35000 XAF + 10% =', calculateRentFund(35000, 10), 'XAF (attendu: 38500)')
+        
       } catch (error) {
         console.error('Erreur chargement settings:', error)
-        // Garder les valeurs par défaut en cas d'erreur
         setIsLoading(false)
       }
     }
 
-    // Charger directement depuis IndexedDB plutôt que d'attendre le hook useSettings
     loadSettings()
   }, [])
 
-  // Détecter les changements et valider
+  // Détecter les changements
   useEffect(() => {
-    if (originalSettings) {
-      const hasChanged = 
-        formData.salary !== originalSettings.salary ||
-        formData.rentMonthly !== originalSettings.rentMonthly ||
-        formData.rentMarginPct !== originalSettings.rentMarginPct ||
-        formData.salarySavePct !== originalSettings.salarySavePct ||
-        formData.nutritionBudget !== originalSettings.nutritionBudget ||
-        formData.transportBudget !== originalSettings.transportBudget ||
-        formData.utilitiesBudget !== originalSettings.utilitiesBudget ||
-        formData.healthBeautyBudget !== originalSettings.healthBeautyBudget ||
-        formData.phoneInternetBudget !== originalSettings.phoneInternetBudget ||
-        formData.leisureBudget !== originalSettings.leisureBudget ||
-        formData.diversBudget !== originalSettings.diversBudget ||
-        formData.pocketMonsieurBudget !== originalSettings.pocketMonsieurBudget ||
-        formData.pocketMadameBudget !== originalSettings.pocketMadameBudget ||
-        formData.familyAidBudget !== originalSettings.familyAidBudget
-      
+    if (originalData) {
+      const hasChanged = JSON.stringify(formData) !== JSON.stringify(originalData)
       setHasChanges(hasChanged)
-      console.log('🔍 Détection changements:', { hasChanged, formData, originalSettings })
     }
-    
-    // Valider les données actuelles
-    validateData(formData)
-  }, [formData, originalSettings])
+  }, [formData, originalData])
 
-  // Calculer les budgets en temps réel
-  const calculatedBudgets = {
-    rent: calculateRentFund(formData.rentMonthly, formData.rentMarginPct),
-    nutrition: formData.nutritionBudget,
-    transport: formData.transportBudget,
-    utilities: formData.utilitiesBudget,
-    healthBeauty: formData.healthBeautyBudget,
-    phoneInternet: formData.phoneInternetBudget,
-    leisure: formData.leisureBudget,
-    divers: formData.diversBudget,
-    pocketMonsieur: formData.pocketMonsieurBudget,
-    pocketMadame: formData.pocketMadameBudget,
-    familyAid: formData.familyAidBudget,
-    savings: Math.round(formData.salary * formData.salarySavePct / 100)
-  }
-
-  const totalBudgets = Object.values(calculatedBudgets).reduce((sum, val) => sum + val, 0)
+  // Calculer les totaux et validations
+  const totalBudgets = Object.values(formData.budgets).reduce((sum, amount) => sum + amount, 0)
+  const totalExpenses = Object.entries(formData.budgets)
+    .filter(([categoryId]) => categoryId !== 'epargne')
+    .reduce((sum, [, amount]) => sum + amount, 0)
   const budgetBalance = formData.salary - totalBudgets
+  const expensePercentage = formData.salary > 0 ? (totalExpenses / formData.salary) * 100 : 0
+  const savingsPercentage = formData.salary > 0 ? ((formData.budgets.epargne || 0) / formData.salary) * 100 : 0
+  const hasSalary = formData.salary > 0
 
-  // Valider les données avec erreurs et avertissements
-  const validateData = (data: SettingsFormData) => {
-    const newErrors: Record<string, string> = {}
-    const newWarnings: Record<string, string> = {}
-    
-    // Validation basique du salaire (erreur bloquante)
-    if (data.salary <= 0) {
-      newErrors.salary = 'Le salaire doit être supérieur à 0'
-      setErrors(newErrors)
-      setWarnings({})
-      return false
-    }
-    
-    // Recalculer les budgets avec les nouvelles données
-    const tempBudgets = {
-      rent: calculateRentFund(data.rentMonthly, data.rentMarginPct),
-      transport: calculateTransportBudget(data.transportDaily),
-      food: calculateFoodBudget(4000), // Valeur par défaut
-      data: calculateDataBudget(20000, 5000), // Valeurs par défaut
-      savings: Math.round(data.salary * data.salarySavePct / 100)
-    }
-    
-    const totalBudgets = Object.values(tempBudgets).reduce((sum, val) => sum + val, 0)
-    
-    // Avertissements (non bloquants) - Pourcentages recommandés
-    
-    // Loyer > 30% = avertissement, > 50% = erreur
-    const rentPercentage = (data.rentMonthly / data.salary) * 100
-    if (rentPercentage > 50) {
-      newErrors.rentMonthly = `! Loyer critique : ${rentPercentage.toFixed(1)}% du salaire (max recommandé: 30%)`
-    } else if (rentPercentage > 30) {
-      newWarnings.rentMonthly = `! Loyer élevé : ${rentPercentage.toFixed(1)}% du salaire (recommandé: ≤30%)`
-    }
-    
-    // Transport > 10% = avertissement, > 20% = erreur
-    const monthlyTransport = data.transportDaily * 21.7
-    const transportPercentage = (monthlyTransport / data.salary) * 100
-    if (transportPercentage > 20) {
-      newErrors.transportDaily = `! Transport critique : ${transportPercentage.toFixed(1)}% du salaire (max recommandé: 10%)`
-    } else if (transportPercentage > 10) {
-      newWarnings.transportDaily = `! Transport élevé : ${transportPercentage.toFixed(1)}% du salaire (recommandé: ≤10%)`
-    }
-    
-    // Épargne < 10% = avertissement
-    if (data.salarySavePct < 10) {
-      newWarnings.salarySavePct = `i Épargne faible : ${data.salarySavePct}% (recommandé: ≥10% pour la sécurité financière)`
-    }
-    
-    // Total budgets > salaire = erreur bloquante
-    if (totalBudgets > data.salary) {
-      const deficit = totalBudgets - data.salary
-      newErrors.salary = `X Déficit budgétaire : ${formatCurrencyXAF(deficit, { showCurrency: false })} XAF (budgets > salaire)`
-    }
-    
-    setErrors(newErrors)
-    setWarnings(newWarnings)
-    return Object.keys(newErrors).length === 0
+  // Mettre à jour le salaire et recalculer tous les budgets
+  const updateSalary = (newSalary: number) => {
+    const newBudgets = initializeBudgets(newSalary, useRecommended)
+    setFormData({ salary: newSalary, budgets: newBudgets })
   }
 
-  // Mettre à jour un champ
-  const updateField = (field: keyof SettingsFormData, value: number) => {
-    const newData = { ...formData, [field]: value }
-    setFormData(newData)
-    
-    // Animation spéciale pour le changement de marge
-    if (field === 'rentMarginPct') {
-      setMarginChanged(true)
-      setTimeout(() => setMarginChanged(false), 1000)
-    }
+  // Mettre à jour un budget spécifique
+  const updateBudget = (categoryId: string, amount: number) => {
+    setFormData(prev => ({
+      ...prev,
+      budgets: { ...prev.budgets, [categoryId]: amount }
+    }))
   }
 
-  // Sauvegarder les modifications
+  // Appliquer les valeurs recommandées/maximales
+  const applyPreset = (useRecommendedValues: boolean) => {
+    const newBudgets = initializeBudgets(formData.salary, useRecommendedValues)
+    setFormData(prev => ({ ...prev, budgets: newBudgets }))
+    setUseRecommended(useRecommendedValues)
+  }
+
+  // Sauvegarder
   const handleSave = async () => {
-    // Vérifier qu'il n'y a pas d'erreurs bloquantes
-    if (!validateData(formData)) {
+    if (formData.salary <= 0) {
+      alert('Veuillez saisir un salaire valide avant de sauvegarder')
       return
     }
-
+    
     setIsSaving(true)
     try {
-      // Importer la DB
       const { db } = await import('../data/db')
       
-      // Récupérer les settings existants ou créer nouveaux
-      let currentSettings = await db.settings.get('singleton')
-      
-      if (!currentSettings) {
-        // Créer nouveaux settings
-        currentSettings = {
-          id: 'singleton',
-          salary: formData.salary,
-          rentMonthly: formData.rentMonthly,
-          rentMarginPct: formData.rentMarginPct,
-          transportDaily: formData.transportDaily,
-          salarySavePct: formData.salarySavePct,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      } else {
-        // Mettre à jour settings existants
-        currentSettings = {
-          ...currentSettings,
-          salary: formData.salary,
-          rentMonthly: formData.rentMonthly,
-          rentMarginPct: formData.rentMarginPct,
-          transportDaily: formData.transportDaily,
-          salarySavePct: formData.salarySavePct,
-          updatedAt: new Date().toISOString()
-        }
+      // Sauvegarder les nouvelles catégories scientifiques
+      const settingsToSave = {
+        id: 'singleton' as const,
+        salary: formData.salary,
+        
+        // Compatibilité ancienne version
+        rentMonthly: Math.round(formData.budgets.logement * 0.65), // Loyer sans marge
+        rentMarginPct: 10 as const,
+        salarySavePct: Math.round((formData.budgets.epargne / formData.salary) * 100),
+        
+        // Nouvelles catégories scientifiques
+        scientificBudgets: formData.budgets,
+        
+        // Mapping pour compatibilité
+        nutritionBudget: formData.budgets.alimentation || 0,
+        transportBudget: formData.budgets.transport || 0,
+        utilitiesBudget: formData.budgets.factures || 0,
+        healthBeautyBudget: formData.budgets.sante || 0,
+        phoneInternetBudget: Math.round((formData.budgets.factures || 0) * 0.4),
+        leisureBudget: formData.budgets.loisirs || 0,
+        diversBudget: formData.budgets.vie_courante || 0,
+        pocketMonsieurBudget: Math.round((formData.budgets.couple || 0) * 0.4),
+        pocketMadameBudget: Math.round((formData.budgets.couple || 0) * 0.4),
+        familyAidBudget: formData.budgets.famille || 0,
+        
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
       
-      // Sauvegarder en IndexedDB
-      await db.settings.put(currentSettings)
+      await db.settings.put(settingsToSave)
       
-      console.log('Settings sauvegardés avec succès:', currentSettings)
-      
-      // Mettre à jour les settings originaux avec les nouvelles valeurs
-      setOriginalSettings(formData)
-      
-      // Réinitialiser l'état des changements
+      setOriginalData(formData)
       setHasChanges(false)
-      
-      // Feedback visuel de succès
       setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000) // Disparaît après 3s
+      setTimeout(() => setSaveSuccess(false), 3000)
       
     } catch (error) {
-      console.error('Erreur sauvegarde settings:', error)
-      alert('Erreur lors de la sauvegarde. Veuillez réessayer.')
+      console.error('Erreur sauvegarde:', error)
+      alert('Erreur lors de la sauvegarde')
     } finally {
       setIsSaving(false)
     }
   }
 
-  // Reset aux valeurs par défaut
-  const handleReset = async () => {
+  // Reset functions (réutilisées)
+  const handleResetDatabase = async () => {
+    if (!confirm('⚠️ Supprimer TOUTES les données ?')) return
+    setIsResetting(true)
     try {
-      // Importer les valeurs par défaut
-      const { DEFAULT_SETTINGS } = await import('../types')
-      
-      setFormData({
-        salary: DEFAULT_SETTINGS.salary,
-        rentMonthly: DEFAULT_SETTINGS.rentMonthly,
-        rentMarginPct: DEFAULT_SETTINGS.rentMarginPct,
-        transportDaily: DEFAULT_SETTINGS.transportDaily,
-        salarySavePct: DEFAULT_SETTINGS.salarySavePct
-      })
-      
-      console.log('Reset aux valeurs par défaut:', DEFAULT_SETTINGS)
+      await resetDatabase()
+      window.location.reload()
     } catch (error) {
       console.error('Erreur reset:', error)
-      // Fallback valeurs codées en dur
-      setFormData({
-        salary: 250000,
-        rentMonthly: 35000, // Valeur par défaut correcte
-        rentMarginPct: 10,
-        transportDaily: 1500,
-        salarySavePct: 10 // Valeur par défaut correcte
-      })
+    } finally {
+      setIsResetting(false)
     }
   }
 
-  // Charger les stats de la DB
+  const handleResetTransactions = async () => {
+    if (!confirm('Supprimer toutes les transactions ?')) return
+    setIsResetting(true)
+    try {
+      await resetTransactionsOnly()
+      await loadDbStats()
+      alert('✅ Transactions supprimées')
+    } catch (error) {
+      console.error('Erreur:', error)
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
   const loadDbStats = async () => {
     try {
       const stats = await showDatabaseStats()
       setDbStats(stats)
     } catch (error) {
-      console.error('Erreur chargement stats:', error)
+      console.error('Erreur stats:', error)
     }
   }
 
-  // Reset complet de la base de données
-  const handleResetDatabase = async () => {
-    if (!confirm('⚠️ ATTENTION : Cette action va supprimer TOUTES vos données (transactions, settings). Continuer ?')) {
-      return
-    }
-
-    setIsResetting(true)
+  // Fonction de test pour recharger les settings
+  const handleReloadSettings = async () => {
+    setIsLoading(true)
     try {
-      await resetDatabase()
-      alert('✅ Base de données réinitialisée avec succès !')
+      const { db } = await import('../data/db')
+      const currentSettings = await db.settings.get('singleton')
       
-      // Recharger la page pour refléter les changements
-      window.location.reload()
+      if (currentSettings && currentSettings.salary > 0) {
+        const settingsData = {
+          salary: currentSettings.salary,
+          budgets: currentSettings.scientificBudgets || {}
+        }
+        setOriginalData(settingsData)
+        setFormData(settingsData)
+      }
     } catch (error) {
-      console.error('Erreur reset DB:', error)
-      alert('❌ Erreur lors du reset de la base de données')
+      console.error('Erreur rechargement:', error)
     } finally {
-      setIsResetting(false)
+      setIsLoading(false)
     }
   }
 
-  // Reset uniquement des transactions
-  const handleResetTransactions = async () => {
-    if (!confirm('Supprimer toutes les transactions ? (Les settings seront conservés)')) {
-      return
-    }
-
+  // Fonction de migration des catégories
+  const handleMigrateCategories = async () => {
+    if (!confirm('Migrer vers les nouvelles catégories scientifiques ? Cela remplacera les anciennes catégories.')) return
+    
     setIsResetting(true)
     try {
-      await resetTransactionsOnly()
+      await migrateToScientificCategories()
       await loadDbStats()
-      alert('✅ Transactions supprimées avec succès !')
+      setNeedsCategoryMigration(false)
+      alert('✅ Migration réussie ! Les nouvelles catégories scientifiques sont disponibles.')
     } catch (error) {
-      console.error('Erreur reset transactions:', error)
-      alert('❌ Erreur lors de la suppression des transactions')
+      console.error('Erreur migration:', error)
+      alert('❌ Erreur lors de la migration')
     } finally {
       setIsResetting(false)
     }
   }
 
-  // Charger les stats au montage
+  // Vérifier si migration nécessaire
+  const checkMigration = async () => {
+    try {
+      const needs = await needsMigration()
+      setNeedsCategoryMigration(needs)
+    } catch (error) {
+      console.error('Erreur vérification migration:', error)
+    }
+  }
+
   useEffect(() => {
     loadDbStats()
+    checkMigration()
   }, [])
 
   if (isLoading) {
@@ -385,7 +286,7 @@ export default function Settings() {
         <Card>
           <CardContent className="p-6 text-center">
             <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
-            <div className="text-gray-600">Chargement des paramètres...</div>
+            <div className="text-gray-600">Chargement...</div>
           </CardContent>
         </Card>
       </div>
@@ -393,266 +294,225 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <span className="mr-3">⚙</span>
-            Paramètres Financiers
-          </CardTitle>
+          <CardTitle>Configuration Budgétaire Scientifique</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600">
-            Configurez vos revenus et dépenses pour personnaliser vos budgets
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Formulaire Principal */}
-      <Card>
-        <CardHeader>
-          <CardTitle>$ Revenus et Charges</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Salaire */}
-            <NumericInput
-              label="Salaire mensuel"
-              value={formData.salary}
-              onChange={(value) => updateField('salary', value)}
-              icon="$"
-              min={1} // Juste pour éviter 0 ou négatif
-              max={999999999} // Pas de limite réelle
-              step={25000}
-              placeholder="250000"
-            />
-
-            {/* Loyer */}
-            <NumericInput
-              label="Loyer mensuel"
-              value={formData.rentMonthly}
-              onChange={(value) => updateField('rentMonthly', value)}
-              icon="H"
-              min={0}
-              max={999999999} // Pas de limite technique
-              step={25000}
-              placeholder="150000"
-              error={errors.rentMonthly}
-              warning={warnings.rentMonthly}
-            />
-
-            {/* Transport */}
-            <NumericInput
-              label="Transport quotidien"
-              value={formData.transportDaily}
-              onChange={(value) => updateField('transportDaily', value)}
-              icon="T"
-              min={0}
-              max={999999999} // Pas de limite technique
-              step={250}
-              placeholder="1500"
-              error={errors.transportDaily}
-              warning={warnings.transportDaily}
-            />
-
-            {/* Épargne */}
-            <NumericInput
-              label="Épargne (% du salaire)"
-              value={formData.salarySavePct}
-              onChange={(value) => updateField('salarySavePct', value)}
-              icon="%"
-              suffix="%"
-              min={0}
-              max={100} // Pas de limite technique
-              step={5}
-              placeholder="20"
-              warning={warnings.salarySavePct}
-            />
+          <div className="space-y-3">
+            <p className="text-gray-600">
+              Répartition optimale basée sur les meilleures pratiques financières
+            </p>
+            <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
+              <strong>Objectif :</strong> Dépenses &le; 75% • Épargne &ge; 25% • Logement &le; 20%
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Marge Loyer */}
+      {/* Salaire et Presets */}
       <Card>
         <CardHeader>
-          <CardTitle>H Marge de Sécurité Loyer</CardTitle>
+          <CardTitle>Salaire et Configuration</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-blue-800 text-sm font-medium mb-1">
-                i Pourquoi une marge de sécurité ?
-              </p>
-              <p className="text-blue-700 text-xs">
-                Économisez plus que votre loyer pour couvrir les augmentations, réparations et imprévus
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <NumericInput
+                label="Salaire mensuel (XAF) *"
+                value={formData.salary}
+                onChange={updateSalary}
+                icon="$"
+                step={25000}
+                placeholder="Saisissez votre salaire"
+                error={formData.salary <= 0 ? "Le salaire est obligatoire pour calculer les budgets" : undefined}
+              />
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Configuration automatique
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={() => applyPreset(true)}
+                    variant={useRecommended ? "primary" : "outline"}
+                    size="sm"
+                    disabled={!hasSalary}
+                  >
+                    Recommandé
+                  </Button>
+                  <Button
+                    onClick={() => applyPreset(false)}
+                    variant={!useRecommended ? "primary" : "outline"}
+                    size="sm"
+                    disabled={!hasSalary}
+                  >
+                    Maximum
+                  </Button>
+                </div>
+                {!hasSalary && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Saisissez d'abord votre salaire pour activer la configuration automatique
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Message si pas de salaire */}
+      {!hasSalary && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="text-center text-blue-800">
+              <p className="font-medium">Configuration des budgets</p>
+              <p className="text-sm mt-1">
+                Saisissez votre salaire mensuel ci-dessus pour calculer automatiquement vos budgets optimaux selon les règles scientifiques.
               </p>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => updateField('rentMarginPct', 5)}
-                className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                  formData.rentMarginPct === 5
-                    ? 'border-green-500 bg-green-50 text-green-900 shadow-md'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
-                }`}
-              >
-                <div className="text-xl font-bold">5%</div>
-                <div className="text-sm font-medium">Conservative</div>
-                <div className="text-xs text-gray-600 mt-2">
-                  Budget mensuel :
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Budgets par Catégorie */}
+      {hasSalary && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {BUDGET_RULES.map((category) => {
+          const amount = formData.budgets[category.id] || 0
+          const validation = getBudgetValidation(formData.salary, category.id, amount)
+          
+          return (
+            <Card key={category.id} className="relative">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center space-x-2">
+                  <span>{category.name}</span>
+                  <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                    &le;{category.maxPercentage}%
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <NumericInput
+                    label={`Budget mensuel (${validation.percentage.toFixed(1)}%)`}
+                    value={amount}
+                    onChange={(value) => updateBudget(category.id, value)}
+                    icon="$"
+                    step={category.id === 'epargne' ? 10000 : 5000}
+                    error={validation.level === 'error' ? validation.message : undefined}
+                    warning={validation.level === 'warning' ? validation.message : undefined}
+                  />
+                  
+                  {/* Sous-catégories */}
+                  <div className="text-xs text-gray-600 space-y-1">
+                    {category.subcategories.slice(0, 3).map(sub => (
+                      <div key={sub.id} className="flex justify-between">
+                        <span>- {sub.name}</span>
+                        <span>&le;{sub.maxPercentage}%</span>
+                      </div>
+                    ))}
+                    {category.subcategories.length > 3 && (
+                      <div className="text-gray-500">
+                        +{category.subcategories.length - 3} autres...
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="text-sm font-bold text-green-700">
-                  {formatCurrencyXAF(calculateRentFund(formData.rentMonthly, 5), { showCurrency: false })} XAF
+              </CardContent>
+            </Card>
+          )
+        })}
+        </div>
+      )}
+
+      {/* Résumé Global */}
+      {hasSalary && (
+        <Card>
+        <CardHeader>
+          <CardTitle>Résumé Budgétaire</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {formatCurrencyXAF(formData.salary, { showCurrency: false })}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  +{formatCurrencyXAF(Math.round(formData.rentMonthly * 0.05), { showCurrency: false })} de marge
-                </div>
-              </button>
+                <div className="text-sm text-gray-600">Salaire</div>
+              </div>
               
-              <button
-                onClick={() => updateField('rentMarginPct', 10)}
-                className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                  formData.rentMarginPct === 10
-                    ? 'border-blue-500 bg-blue-50 text-blue-900 shadow-md'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50'
-                }`}
-              >
-                <div className="text-xl font-bold">10%</div>
-                <div className="text-sm font-medium">Recommandé</div>
-                <div className="text-xs text-gray-600 mt-2">
-                  Budget mensuel :
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {formatCurrencyXAF(totalExpenses, { showCurrency: false })}
                 </div>
-                <div className="text-sm font-bold text-blue-700">
-                  {formatCurrencyXAF(calculateRentFund(formData.rentMonthly, 10), { showCurrency: false })} XAF
+                <div className="text-sm text-gray-600">Total Dépenses ({expensePercentage.toFixed(1)}%)</div>
+              </div>
+              
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrencyXAF(formData.budgets.epargne || 0, { showCurrency: false })}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  +{formatCurrencyXAF(Math.round(formData.rentMonthly * 0.10), { showCurrency: false })} de marge
+                <div className="text-sm text-gray-600">Épargne ({savingsPercentage.toFixed(1)}%)</div>
+              </div>
+              
+              <div className={`text-center p-4 rounded-lg ${
+                budgetBalance >= 0 ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+              }`}>
+                <div className="text-2xl font-bold">
+                  {formatCurrencyXAF(Math.abs(budgetBalance), { showCurrency: false })}
                 </div>
-              </button>
+                <div className="text-sm">
+                  {budgetBalance >= 0 ? 'Surplus' : 'Déficit'}
+                </div>
+              </div>
             </div>
 
-            {/* Comparaison des options */}
-            <div className={`bg-gray-50 p-3 rounded-lg transition-all duration-500 ${
-              marginChanged ? 'bg-yellow-50 border border-yellow-200' : ''
-            }`}>
-              <div className="text-sm font-medium text-gray-700 mb-2">
-                → Impact sur votre budget mensuel :
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="text-center">
-                  <div className="font-medium text-green-700">Option 5%</div>
-                  <div className="text-gray-600">
-                    Économie : {formatCurrencyXAF(calculateRentFund(formData.rentMonthly, 5) - formData.rentMonthly, { showCurrency: false })} XAF/mois
-                  </div>
+            {/* Messages éducatifs */}
+            <div className="space-y-2">
+              {expensePercentage > 75 && (
+                <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-sm text-red-800">
+                  <strong>Attention :</strong> Total dépenses {expensePercentage.toFixed(1)}% &gt; 75% recommandé
                 </div>
-                <div className="text-center">
-                  <div className="font-medium text-blue-700">Option 10%</div>
-                  <div className="text-gray-600">
-                    Économie : {formatCurrencyXAF(calculateRentFund(formData.rentMonthly, 10) - formData.rentMonthly, { showCurrency: false })} XAF/mois
-                  </div>
+              )}
+              
+              {savingsPercentage < 25 && (
+                <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg text-sm text-orange-800">
+                  <strong>Épargne insuffisante :</strong> {savingsPercentage.toFixed(1)}% &lt; 25% recommandé
                 </div>
-              </div>
-              <div className="text-center mt-2 pt-2 border-t border-gray-200">
-                <span className="text-xs font-medium text-gray-700">
-                  Différence : {formatCurrencyXAF(calculateRentFund(formData.rentMonthly, 10) - calculateRentFund(formData.rentMonthly, 5), { showCurrency: false })} XAF/mois
-                </span>
-              </div>
-              {marginChanged && (
-                <div className="text-center mt-2 text-xs text-yellow-700 font-medium">
-                  • Calculs mis à jour !
+              )}
+              
+              {formData.budgets.logement / formData.salary > 0.20 && (
+                <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-sm text-red-800">
+                  <strong>Logement trop cher :</strong> {((formData.budgets.logement / formData.salary) * 100).toFixed(1)}% &gt; 20% max
                 </div>
               )}
             </div>
           </div>
         </CardContent>
-      </Card>
-
-      {/* Preview Budgets */}
-      <Card>
-        <CardHeader>
-          <CardTitle>→ Aperçu des Budgets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-              <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                <span>H Loyer (+{formData.rentMarginPct}%)</span>
-                <span className="font-medium">{formatCurrencyXAF(calculatedBudgets.rent, { showCurrency: false })}</span>
-              </div>
-              
-              <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                <span>T Transport</span>
-                <span className="font-medium">{formatCurrencyXAF(calculatedBudgets.transport, { showCurrency: false })}</span>
-              </div>
-              
-              <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                <span>A Alimentation</span>
-                <span className="font-medium">{formatCurrencyXAF(calculatedBudgets.food, { showCurrency: false })}</span>
-              </div>
-              
-              <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                <span>D Data</span>
-                <span className="font-medium">{formatCurrencyXAF(calculatedBudgets.data, { showCurrency: false })}</span>
-              </div>
-              
-              <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                <span>% Épargne ({formData.salarySavePct}%)</span>
-                <span className="font-medium">{formatCurrencyXAF(calculatedBudgets.savings, { showCurrency: false })}</span>
-              </div>
-            </div>
-            
-            <hr className="my-3" />
-            
-            <div className="flex justify-between items-center">
-              <span className="font-semibold">Total Budgets</span>
-              <span className="font-bold text-lg">{formatCurrencyXAF(totalBudgets, { showCurrency: false })}</span>
-            </div>
-            
-            <div className={`flex justify-between items-center p-3 rounded-lg ${
-              budgetBalance >= 0 ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-            }`}>
-              <span className="font-semibold">
-                {budgetBalance >= 0 ? 'Reste Disponible' : 'Dépassement'}
-              </span>
-              <span className="font-bold text-lg">
-                {formatCurrencyXAF(Math.abs(budgetBalance), { showCurrency: false })}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </Card>
+      )}
 
       {/* Actions */}
       <div className="flex space-x-3">
         <Button
           onClick={handleSave}
-          disabled={!hasChanges || isSaving || Object.keys(errors).length > 0}
+          disabled={!hasChanges || isSaving || !hasSalary}
           variant="primary"
           className="flex-1"
         >
-          {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-        </Button>
-        
-        <Button
-          onClick={handleReset}
-          variant="outline"
-          disabled={isSaving}
-        >
-          ↻ Reset
+          {isSaving ? 'Sauvegarde...' : 'Sauvegarder Configuration'}
         </Button>
       </div>
 
-      {/* Status */}
+      {/* Status Messages */}
       {saveSuccess && (
         <Card className="border-green-200 bg-green-50">
           <CardContent className="p-4">
             <div className="flex items-center text-green-800">
-              <span className="mr-2">✓</span>
-              <span className="text-sm font-medium">
-                Paramètres sauvegardés avec succès !
-              </span>
+              <span className="text-sm font-medium">Configuration scientifique sauvegardée !</span>
             </div>
           </CardContent>
         </Card>
@@ -662,51 +522,68 @@ export default function Settings() {
         <Card className="border-orange-200 bg-orange-50">
           <CardContent className="p-4">
             <div className="flex items-center text-orange-800">
-              <span className="mr-2">▲</span>
-              <span className="text-sm font-medium">
-                Vous avez des modifications non sauvegardées
-              </span>
+              <span className="text-sm font-medium">Modifications non sauvegardées</span>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Zone de Reset pour Tests Réels */}
+      {/* Zone de Reset */}
       <Card className="border-red-200 bg-red-50">
         <CardHeader>
-          <CardTitle className="text-red-900">Zone de Test - Reset Données</CardTitle>
+          <CardTitle className="text-red-900">Zone de Test</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="bg-white p-3 rounded-lg border border-red-200">
-              <p className="text-sm text-red-800 mb-3">
-                <strong>Pour commencer des tests réels :</strong> Videz les données de test existantes
-              </p>
-              
-              {dbStats && (
-                <div className="grid grid-cols-3 gap-4 mb-4 text-xs">
-                  <div className="text-center p-2 bg-blue-50 rounded">
-                    <div className="font-bold text-blue-600">{dbStats.transactions}</div>
-                    <div className="text-gray-600">Transactions</div>
-                  </div>
-                  <div className="text-center p-2 bg-green-50 rounded">
-                    <div className="font-bold text-green-600">{dbStats.categories}</div>
-                    <div className="text-gray-600">Catégories</div>
-                  </div>
-                  <div className="text-center p-2 bg-purple-50 rounded">
-                    <div className="font-bold text-purple-600">{dbStats.settings}</div>
-                    <div className="text-gray-600">Settings</div>
-                  </div>
+            {dbStats && (
+              <div className="grid grid-cols-3 gap-4 text-xs">
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="font-bold text-blue-600">{dbStats.transactions}</div>
+                  <div className="text-gray-600">Transactions</div>
                 </div>
-              )}
-            </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="font-bold text-green-600">{dbStats.categories}</div>
+                  <div className="text-gray-600">Catégories</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded border">
+                  <div className="font-bold text-purple-600">{dbStats.settings}</div>
+                  <div className="text-gray-600">Settings</div>
+                </div>
+              </div>
+            )}
 
-            <div className="flex space-x-3">
+            {needsCategoryMigration && (
+              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-sm text-yellow-800 mb-4">
+                <strong>Migration nécessaire :</strong> Anciennes catégories détectées. Migrez vers les nouvelles catégories scientifiques.
+              </div>
+            )}
+
+            <div className="flex space-x-2">
+              {needsCategoryMigration && (
+                <Button
+                  onClick={handleMigrateCategories}
+                  disabled={isResetting}
+                  variant="primary"
+                  className="flex-1"
+                >
+                  {isResetting ? 'Migration...' : 'Migrer Catégories'}
+                </Button>
+              )}
+              
+              <Button
+                onClick={handleReloadSettings}
+                disabled={isLoading}
+                variant="outline"
+                className="flex-1 border-blue-300 text-blue-700"
+              >
+                {isLoading ? 'Chargement...' : 'Recharger Settings'}
+              </Button>
+              
               <Button
                 onClick={handleResetTransactions}
                 disabled={isResetting}
                 variant="outline"
-                className="flex-1 border-orange-300 text-orange-700 hover:bg-orange-50"
+                className="flex-1 border-orange-300 text-orange-700"
               >
                 {isResetting ? 'Reset...' : 'Vider Transactions'}
               </Button>
@@ -719,11 +596,6 @@ export default function Settings() {
               >
                 {isResetting ? 'Reset...' : 'Reset Complet'}
               </Button>
-            </div>
-
-            <div className="text-xs text-red-600 bg-white p-2 rounded border border-red-200">
-              <strong>Vider Transactions :</strong> Supprime uniquement les dépenses (garde vos paramètres)<br/>
-              <strong>Reset Complet :</strong> Supprime TOUT et remet les valeurs par défaut
             </div>
           </div>
         </CardContent>

@@ -12,7 +12,6 @@ import {
   getMonthlySpendingByCategory,
   calculateBudgetUsage,
   getBudgetStatus,
-  calculateRecommendedBudgets,
   calculateFinancialStats
 } from '../utils/calculations'
 

@@ -4,7 +4,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui'
 import BudgetBar from '../components/BudgetBar'
-import { useBudgets } from '../hooks/useBudgets'
+import { useScientificBudgets } from '../hooks/useScientificBudgets'
 import { getCurrentMonthDouala } from '../utils/format'
 
 export default function Dashboard() {
@@ -12,7 +12,7 @@ export default function Dashboard() {
   const currentMonth = getCurrentMonthDouala()
   
   // Hook pour les vraies données de budget
-  const { budgets, totalBudgeted, totalSpent, isLoading } = useBudgets()
+  const { budgets, totalBudgeted, totalSpent, isLoading } = useScientificBudgets()
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">

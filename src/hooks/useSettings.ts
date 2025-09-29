@@ -134,6 +134,6 @@ export function calculateEmergencyFund(settings: Settings): number {
   return Math.round(settings.salary * settings.salarySavePct / 100)
 }
 
-export function calculateTransportBudget(settings: Settings): number {
-  return Math.round(settings.transportDaily * 21.7) // 21.7 jours ouvrés moyens
+export function calculateTransportBudget(): number {
+  return Math.round(1500 * 21.7) // 21.7 jours ouvrés moyens, 1500 XAF par défaut
 }

@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard'
 import QuickAdd from './pages/QuickAdd'
 import Transactions from './pages/Transactions'
 import Budgets from './pages/Budgets'
-import Settings from './pages/SettingsScientific'
+import Settings from './pages/Settings'
 import './App.css'
 
 function App() {

@@ -102,13 +102,10 @@ export default function PinSetup({ onComplete }: PinSetupProps = {}) {
         // Récupérer ou créer les settings
         let settings = await db.settings.get('singleton')
         if (!settings) {
+          const { DEFAULT_SETTINGS } = await import('../types')
           settings = {
             id: 'singleton',
-            salary: 250000,
-            rentMonthly: 150000,
-            rentMarginPct: 10,
-            transportDaily: 1500,
-            salarySavePct: 20,
+            ...DEFAULT_SETTINGS,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }
