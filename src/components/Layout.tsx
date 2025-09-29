@@ -36,20 +36,20 @@ export default function Layout() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header moderne avec charte - Fixe */}
       <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600/95 to-blue-700/95 backdrop-blur-sm text-white shadow-lg z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 py-3">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold text-white truncate">{getPageTitle()}</h1>
+              <h1 className="text-base font-semibold text-white truncate">{getPageTitle()}</h1>
               <p className="text-blue-100 text-xs truncate">FinanceIQ</p>
             </div>
-            <div className="flex items-center space-x-3">
-              <CurrencyDollarIcon className="w-8 h-8 text-blue-100" />
+            <div className="flex items-center space-x-2">
+              <CurrencyDollarIcon className="w-6 h-6 text-blue-100" />
               <button
                 onClick={logout}
-                className="p-2 text-blue-100 hover:text-white hover:bg-blue-500 rounded-lg transition-colors"
+                className="p-1.5 text-blue-100 hover:text-white hover:bg-blue-500 rounded-lg transition-colors"
                 title="Se déconnecter"
               >
-                <LockClosedIcon className="w-5 h-5" />
+                <LockClosedIcon className="w-4 h-4" />
               </button>
             </div>
           </div>

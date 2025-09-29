@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui'
 import NumericInput from '../components/NumericInput'
+import DataPrivacyModal from '../components/DataPrivacyModal'
 import { formatCurrencyXAF } from '../utils/format'
 import { BUDGET_RULES, calculateBudgetAmount, getBudgetValidation } from '../types/budgetRules'
 import { resetDatabase, resetTransactionsOnly, showDatabaseStats } from '../utils/resetDatabase'
@@ -29,6 +30,7 @@ export default function SettingsScientific() {
   const [dbStats, setDbStats] = useState<{ transactions: number; categories: number; settings: number } | null>(null)
   const [useRecommended, setUseRecommended] = useState(true)
   const [needsCategoryMigration, setNeedsCategoryMigration] = useState(false)
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false)
 
   // Initialiser les budgets avec les valeurs recommandées
   const initializeBudgets = (salary: number, useRecommendedValues: boolean = true) => {
@@ -558,41 +560,51 @@ export default function SettingsScientific() {
               </div>
             )}
 
-            <div className="flex space-x-2">
+            <div className="space-y-2">
               {needsCategoryMigration && (
                 <Button
                   onClick={handleMigrateCategories}
                   disabled={isResetting}
                   variant="primary"
-                  className="flex-1"
+                  className="w-full"
                 >
                   {isResetting ? 'Migration...' : 'Migrer Catégories'}
                 </Button>
               )}
               
-              <Button
-                onClick={handleReloadSettings}
-                disabled={isLoading}
-                variant="outline"
-                className="flex-1 border-blue-300 text-blue-700"
-              >
-                {isLoading ? 'Chargement...' : 'Recharger Settings'}
-              </Button>
-              
-              <Button
-                onClick={handleResetTransactions}
-                disabled={isResetting}
-                variant="outline"
-                className="flex-1 border-orange-300 text-orange-700"
-              >
-                {isResetting ? 'Reset...' : 'Vider Transactions'}
-              </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Button
+                  onClick={handleReloadSettings}
+                  disabled={isLoading}
+                  variant="outline"
+                  className="border-blue-300 text-blue-700"
+                >
+                  {isLoading ? 'Chargement...' : 'Recharger'}
+                </Button>
+                
+                <Button
+                  onClick={() => setShowPrivacyModal(true)}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700"
+                >
+                  🔒 Confidentialité
+                </Button>
+                
+                <Button
+                  onClick={handleResetTransactions}
+                  disabled={isResetting}
+                  variant="outline"
+                  className="border-orange-300 text-orange-700"
+                >
+                  {isResetting ? 'Reset...' : 'Vider Transactions'}
+                </Button>
+              </div>
               
               <Button
                 onClick={handleResetDatabase}
                 disabled={isResetting}
                 variant="danger"
-                className="flex-1"
+                className="w-full"
               >
                 {isResetting ? 'Reset...' : 'Reset Complet'}
               </Button>
@@ -600,6 +612,13 @@ export default function SettingsScientific() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal Confidentialité */}
+      <DataPrivacyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        onAccept={() => setShowPrivacyModal(false)}
+      />
     </div>
   )
 }

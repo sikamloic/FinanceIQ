@@ -64,22 +64,25 @@ export type RentMargin = Settings['rentMarginPct']
 
 // Constantes
 export const DEFAULT_SETTINGS: Omit<Settings, 'id' | 'createdAt' | 'updatedAt'> = {
-  salary: 250000, // 250k XAF
-  rentMonthly: 35000, // 35k XAF
+  salary: 0, // Obligatoire : utilisateur doit saisir son salaire
+  rentMonthly: 0, // Calculé automatiquement selon salaire
   rentMarginPct: 10, // 10%
-  salarySavePct: 10, // 10%
+  salarySavePct: 25, // 25% épargne recommandée
   
-  // Budgets par catégorie (montants mensuels en XAF)
-  nutritionBudget: 50000, // Nutrition/Alimentation
-  transportBudget: 32550, // Transport (1500 × 21.7 jours)
-  utilitiesBudget: 25000, // Eau & Électricité
-  healthBeautyBudget: 15000, // Santé & Beauté
-  phoneInternetBudget: 12500, // Téléphone & Internet
-  leisureBudget: 20000, // Loisirs
-  diversBudget: 15000, // Divers
-  pocketMonsieurBudget: 25000, // Poche Monsieur
-  pocketMadameBudget: 25000, // Poche Madame
-  familyAidBudget: 30000 // Aide à la famille
+  // Budgets par catégorie (calculés automatiquement selon salaire)
+  nutritionBudget: 0, // Calculé selon salaire
+  transportBudget: 0, // Calculé selon salaire
+  utilitiesBudget: 0, // Calculé selon salaire
+  healthBeautyBudget: 0, // Calculé selon salaire
+  phoneInternetBudget: 0, // Calculé selon salaire
+  leisureBudget: 0, // Calculé selon salaire
+  diversBudget: 0, // Calculé selon salaire
+  pocketMonsieurBudget: 0, // Calculé selon salaire
+  pocketMadameBudget: 0, // Calculé selon salaire
+  familyAidBudget: 0, // Calculé selon salaire
+  
+  // Budgets scientifiques (calculés automatiquement)
+  scientificBudgets: {} // Vide par défaut, calculé selon salaire
 }
 
 export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [

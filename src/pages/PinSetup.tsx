@@ -5,8 +5,8 @@ import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui'
 import NumericKeypad from '../components/NumericKeypad'
 import PinDisplay from '../components/PinDisplay'
+import DataPrivacyModal from '../components/DataPrivacyModal'
 import { hashPin } from '../utils/crypto'
-// import { useSettings } from '../hooks/useSettings' // Pour future intégration
 
 type SetupStep = 'enter' | 'confirm' | 'success' | 'error'
 
@@ -17,6 +17,7 @@ interface PinSetupProps {
 export default function PinSetup({ onComplete }: PinSetupProps = {}) {
   const [step, setStep] = useState<SetupStep>('enter')
   const [firstPin, setFirstPin] = useState('')
+  const [showPrivacyModal, setShowPrivacyModal] = useState(true)
   const [confirmPin, setConfirmPin] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -288,6 +289,13 @@ export default function PinSetup({ onComplete }: PinSetupProps = {}) {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal Confidentialité */}
+      <DataPrivacyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        onAccept={() => setShowPrivacyModal(false)}
+      />
     </div>
   )
 }
