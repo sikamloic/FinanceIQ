@@ -2,7 +2,6 @@
 // I4.1 - Configuration Dexie avec schéma optimisé + chiffrement
 
 import Dexie, { type EntityTable } from 'dexie'
-import { encryptWithPin, decryptWithPin } from './crypto'
 import type { Transaction, Category, Settings } from '../types'
 
 // Classe principale de la base de données

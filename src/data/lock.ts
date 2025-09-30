@@ -1,7 +1,7 @@
 // FinanceIQ - Gestion Session et Verrouillage
 // Auto-verrouillage après 5 min d'inactivité selon spécifications
 
-import { encryptWithPin, decryptWithPin, generatePinTestData, verifyPin } from './crypto'
+import { generatePinTestData, verifyPin } from './crypto'
 
 // Type pour les données chiffrées (dupliqué depuis crypto.ts)
 interface EncryptedData {
