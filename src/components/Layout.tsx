@@ -1,9 +1,10 @@
 // FinanceIQ - Layout Mobile Moderne
 // Interface principale de l'application
 
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, Link } from 'react-router-dom'
+import { useSecurityManager } from '../data/lock'
 import { 
-  HomeIcon, 
+  HomeIcon,
   PlusCircleIcon, 
   BanknotesIcon,
   ChartBarIcon, 
@@ -11,11 +12,10 @@ import {
   CurrencyDollarIcon,
   LockClosedIcon
 } from '@heroicons/react/24/outline'
-import { useAuth } from '../contexts/AuthContext'
 
 export default function Layout() {
   const location = useLocation()
-  const { logout } = useAuth()
+  const security = useSecurityManager()
 
   // Navigation avec vraies icônes professionnelles
   const navItems = [
@@ -45,9 +45,9 @@ export default function Layout() {
             <div className="flex items-center space-x-2">
               <CurrencyDollarIcon className="w-6 h-6 text-blue-100" />
               <button
-                onClick={logout}
+                onClick={() => security.lock()}
                 className="p-1.5 text-blue-100 hover:text-white hover:bg-blue-500 rounded-lg transition-colors"
-                title="Se déconnecter"
+                title="Verrouiller l'application"
               >
                 <LockClosedIcon className="w-4 h-4" />
               </button>
