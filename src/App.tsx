@@ -7,6 +7,8 @@ import Layout from './components/Layout'
 import LockScreen from './components/LockScreen'
 import Dashboard from './pages/Dashboard'
 import QuickAdd from './pages/QuickAdd'
+import ExtraIncome from './pages/ExtraIncome'
+import ExtraIncomeHistory from './pages/ExtraIncomeHistory'
 import Transactions from './pages/Transactions'
 import Budgets from './pages/Budgets'
 import Settings from './pages/Settings'
@@ -80,6 +82,8 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="quick-add" element={<QuickAdd />} />
+          <Route path="extra-income" element={<ExtraIncome />} />
+          <Route path="extra-income/history" element={<ExtraIncomeHistory />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="budgets" element={<Budgets />} />
           <Route path="settings" element={<Settings />} />

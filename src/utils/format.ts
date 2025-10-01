@@ -117,6 +117,22 @@ export function formatDateDouala(date: string | Date): string {
 }
 
 /**
+ * Formate une date en français lisible
+ * @param date Date ISO string (YYYY-MM-DD) ou Date object
+ * @returns Date formatée "25 déc. 2024"
+ */
+export function formatDateFR(date: string | Date): string {
+  const dateObj = typeof date === 'string' ? new Date(date + 'T00:00:00') : date
+  
+  return dateObj.toLocaleDateString('fr-FR', {
+    timeZone: 'Africa/Douala',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
+}
+
+/**
  * Obtient la date actuelle au fuseau Africa/Douala
  * @returns Date ISO string (YYYY-MM-DD)
  */

@@ -2,7 +2,7 @@
 // I4.1 - Configuration Dexie avec schéma optimisé + chiffrement
 
 import Dexie, { type EntityTable } from 'dexie'
-import type { Transaction, Category, Settings } from '../types'
+import type { Transaction, Category, Settings, ExtraIncome } from '../types'
 
 // Classe principale de la base de données
 class BudgetDB extends Dexie {
@@ -10,6 +10,7 @@ class BudgetDB extends Dexie {
   transactions!: EntityTable<Transaction, 'id'>
   categories!: EntityTable<Category, 'id'>
   settings!: EntityTable<Settings, 'id'>
+  extraIncomes!: EntityTable<ExtraIncome, 'id'>
 
   constructor() {
     super('FinanceIQDB')
@@ -19,11 +20,16 @@ class BudgetDB extends Dexie {
       // Index sur les champs importants pour les requêtes
       transactions: 'id, date, categoryId, amount, type, createdAt',
       categories: 'id, name, type, sortOrder',
-      settings: 'id' // Une seule instance avec id='singleton'
+      settings: 'id', // Une seule instance avec id='singleton'
+      extraIncomes: 'id, date, type, amount, isProcessed, createdAt'
     })
 
     // Hooks pour auto-générer les timestamps
     this.transactions.hook('creating', (_primKey, obj, _trans) => {
+      obj.createdAt = new Date().toISOString()
+    })
+    
+    this.extraIncomes.hook('creating', (_primKey, obj, _trans) => {
       obj.createdAt = new Date().toISOString()
     })
   }

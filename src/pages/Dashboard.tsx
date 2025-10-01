@@ -23,20 +23,27 @@ export default function Dashboard() {
           <p className="text-gray-600">Vue d'ensemble de vos finances</p>
         </div>
         
-        <div className="flex space-x-3">
+        <div className="flex space-x-2">
           <Button 
             variant="outline" 
             size="sm"
             onClick={() => navigate('/transactions')}
           >
-            Voir transactions
+            📋 Transactions
           </Button>
           <Button 
             variant="success" 
             size="sm"
             onClick={() => navigate('/quick-add')}
           >
-            + Saisie rapide
+            ⚡ Saisie
+          </Button>
+          <Button 
+            variant="primary" 
+            size="sm"
+            onClick={() => navigate('/extra-income')}
+          >
+            💰 Extra
           </Button>
         </div>
       </div>

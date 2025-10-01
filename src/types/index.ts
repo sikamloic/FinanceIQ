@@ -57,6 +57,24 @@ export interface Budget {
   percentUsed: number // Pourcentage utilisé
 }
 
+export interface ExtraIncome {
+  id: string
+  date: string // ISO format (YYYY-MM-DD)
+  amount: number // Montant total du revenu extra en XAF
+  type: 'bonus' | 'freelance' | 'gift' | 'refund' | 'sale' | 'investment' | 'other'
+  description?: string // Description optionnelle
+  
+  // Répartition automatique 60/30/10
+  savingsAmount: number // 60% → Épargne
+  projectsAmount: number // 30% → Projets
+  leisureAmount: number // 10% → Loisirs
+  
+  // Métadonnées
+  isProcessed: boolean // Si les transactions ont été créées
+  transactionIds: string[] // IDs des transactions générées
+  createdAt: string // ISO timestamp
+}
+
 // Types utilitaires
 export type TransactionType = Transaction['type']
 export type CategoryType = Category['type']
