@@ -79,23 +79,30 @@ export default function Dashboard() {
             size="sm"
             onClick={() => navigate('/transactions')}
           >
-            Transactions
-          </Button>
-          <Button 
-            variant="success" 
-            size="sm"
-            onClick={() => navigate('/quick-add')}
-          >
-            Saisie Rapide
-          </Button>
-          <Button 
-            variant="primary" 
-            size="sm"
-            onClick={() => navigate('/extra-income')}
-          >
-            Revenu Extra
+            Voir tout
           </Button>
         </div>
+      </div>
+
+      {/* Actions Rapides */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Button 
+          variant="primary"
+          onClick={() => navigate('/quick-add')}
+          className="h-16 flex items-center justify-center text-white bg-blue-600 hover:bg-blue-700"
+        >
+          <span className="text-xl mr-2">+</span>
+          <span className="font-semibold">Ajouter Transaction</span>
+        </Button>
+        
+        <Button 
+          variant="outline"
+          onClick={() => navigate('/extra-income')}
+          className="h-16 flex items-center justify-center border-2 border-green-500 text-green-700 hover:bg-green-50"
+        >
+          <span className="text-xl mr-2">$</span>
+          <span className="font-semibold">Revenu Extra</span>
+        </Button>
       </div>
 
       {/* Résumé Budget vs Réalité */}
@@ -141,7 +148,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <div className="text-gray-500 mb-3 text-2xl">📊</div>
+              <div className="text-gray-500 mb-3 text-2xl">■</div>
               <div className="text-gray-700 font-medium">Aucun budget configuré</div>
               <div className="text-sm text-gray-500 mb-4">
                 Configurez vos paramètres pour voir vos budgets
@@ -219,7 +226,7 @@ export default function Dashboard() {
         <CardContent>
           {todayTransactions.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-gray-500 mb-3 text-2xl">📝</div>
+              <div className="text-gray-500 mb-3 text-2xl">—</div>
               <div className="text-gray-700 font-medium">Aucune transaction aujourd'hui</div>
               <div className="text-sm text-gray-500 mb-4">
                 Commencez par ajouter vos première dépenses ou revenus
@@ -271,42 +278,6 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Actions Rapides */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-blue-900">Actions Rapides</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button 
-              variant="primary"
-              onClick={() => navigate('/quick-add')}
-              className="h-20 flex flex-col items-center justify-center"
-            >
-              <div className="text-2xl mb-1">⚡</div>
-              <div>Saisie Rapide</div>
-            </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={() => navigate('/extra-income')}
-              className="h-20 flex flex-col items-center justify-center"
-            >
-              <div className="text-2xl mb-1">💰</div>
-              <div>Revenu Extra</div>
-            </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={() => navigate('/budgets')}
-              className="h-20 flex flex-col items-center justify-center"
-            >
-              <div className="text-2xl mb-1">📊</div>
-              <div>Budgets</div>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
