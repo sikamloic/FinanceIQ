@@ -8,7 +8,6 @@ import {
   calculateBudgetImpact, 
   generateSmartRecommendations,
   checkBudgetBalance,
-  getOptimizationStrategies,
   type BudgetImpact 
 } from '../domain/budgetInteraction'
 
