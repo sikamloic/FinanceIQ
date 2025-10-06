@@ -41,13 +41,13 @@ export default function QuickAdd() {
 
 
   // Handler pour transaction personnalisée
-  const handleCustomTransaction = async (amount: number, categoryId: string, categoryName: string, note?: string) => {
+  const handleCustomTransaction = async (amount: number, categoryId: string, categoryName: string, note?: string, date?: string) => {
     try {
       // Créer la transaction
       const transactionData = {
         amount,
         categoryId,
-        date: new Date().toISOString().split('T')[0],
+        date: date || new Date().toISOString().split('T')[0], // Utiliser date fournie ou aujourd'hui
         type: 'expense' as const,
         note: note || undefined
       }

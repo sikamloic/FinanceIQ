@@ -3,12 +3,13 @@
 
 import { useState } from 'react'
 import { Modal, ModalHeader, ModalBody, ModalFooter, ModalTitle, Button, Icon, FinanceIcons } from './ui'
+import DateSelector from './DateSelector'
 // import NumericInput from './NumericInput' // Remplacé par input custom avec Icon
 
 interface CustomAmountModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (amount: number, categoryId: string, categoryName: string, note?: string) => void
+  onSubmit: (amount: number, categoryId: string, categoryName: string, note?: string, date?: string) => void
 }
 
 // Catégories scientifiques disponibles pour saisie libre
@@ -32,6 +33,9 @@ export default function CustomAmountModal({ isOpen, onClose, onSubmit }: CustomA
   const [amount, setAmount] = useState<number>(0)
   const [selectedCategory, setSelectedCategory] = useState<string>('alimentation')
   const [note, setNote] = useState<string>('')
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0] // Défaut: aujourd'hui
+  )
 
   const handleSubmit = () => {
     if (amount <= 0) return
@@ -39,12 +43,13 @@ export default function CustomAmountModal({ isOpen, onClose, onSubmit }: CustomA
     const category = categories.find(cat => cat.id === selectedCategory)
     if (!category) return
 
-    onSubmit(amount, selectedCategory, category.name, note || undefined)
+    onSubmit(amount, selectedCategory, category.name, note || undefined, selectedDate)
     
     // Reset form
     setAmount(0)
     setSelectedCategory('alimentation')
     setNote('')
+    setSelectedDate(new Date().toISOString().split('T')[0])
     onClose()
   }
 
@@ -57,6 +62,13 @@ export default function CustomAmountModal({ isOpen, onClose, onSubmit }: CustomA
       </ModalHeader>
       
       <ModalBody className="space-y-4">
+          {/* Date de la transaction */}
+          <DateSelector
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            maxPastDays={30}
+          />
+          
           {/* Montant */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
