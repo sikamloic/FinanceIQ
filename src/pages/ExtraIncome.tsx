@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui'
 import NumericInput from '../components/NumericInput'
+import DateSelector from '../components/DateSelector'
 import { formatCurrencyXAF } from '../utils/format'
 import { 
   calculateExtraIncomeSplit, 
@@ -21,6 +22,9 @@ export default function ExtraIncome() {
   const [amount, setAmount] = useState('')
   const [selectedType, setSelectedType] = useState<ExtraIncomeType>('bonus')
   const [description, setDescription] = useState('')
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0] // Défaut: aujourd'hui
+  )
   const [showSplit, setShowSplit] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -53,7 +57,8 @@ export default function ExtraIncome() {
       await extraIncomeService.saveExtraIncome(
         split.totalAmount,
         selectedType,
-        description.trim() || undefined
+        description.trim() || undefined,
+        selectedDate
       )
 
       // Feedback succès
@@ -97,6 +102,13 @@ export default function ExtraIncome() {
           <CardTitle>1. Montant reçu</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Date du revenu */}
+          <DateSelector
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            maxPastDays={30}
+          />
+          
           <NumericInput
             label="Montant du revenu extra"
             value={parseInt(amount) || 0}

@@ -17,7 +17,8 @@ export class ExtraIncomeService {
   async saveExtraIncome(
     amount: number,
     type: ExtraIncomeType,
-    description?: string
+    description?: string,
+    date?: string
   ): Promise<ExtraIncome> {
     // Calculer la répartition 60/30/10
     const split = calculateExtraIncomeSplit(amount)
@@ -25,7 +26,7 @@ export class ExtraIncomeService {
     // Créer l'enregistrement du revenu extra
     const extraIncome: ExtraIncome = {
       id: generateId(),
-      date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+      date: date || new Date().toISOString().split('T')[0], // Utiliser date fournie ou aujourd'hui
       amount: split.totalAmount,
       type,
       description,
@@ -252,8 +253,8 @@ export const extraIncomeService = new ExtraIncomeService()
  */
 export function useExtraIncomeService() {
   return {
-    saveExtraIncome: (amount: number, type: ExtraIncomeType, description?: string) =>
-      extraIncomeService.saveExtraIncome(amount, type, description),
+    saveExtraIncome: (amount: number, type: ExtraIncomeType, description?: string, date?: string) =>
+      extraIncomeService.saveExtraIncome(amount, type, description, date),
     
     getExtraIncomes: (startDate?: string, endDate?: string) =>
       extraIncomeService.getExtraIncomes(startDate, endDate),
